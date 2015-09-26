@@ -1,12 +1,10 @@
 package com.amplify;
 
-<<<<<<< HEAD
-import android.content.Context;
-=======
+
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.IntentFilter;
->>>>>>> origin/master
+
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.view.Menu;
@@ -18,9 +16,16 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
+import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.android.volley.Request;
+import com.android.volley.RequestQueue;
+import com.android.volley.Response;
+import com.android.volley.VolleyError;
+import com.android.volley.toolbox.StringRequest;
+import com.android.volley.toolbox.Volley;
 import com.spotify.sdk.android.authentication.AuthenticationClient;
 import com.spotify.sdk.android.authentication.AuthenticationRequest;
 import com.spotify.sdk.android.authentication.AuthenticationResponse;
@@ -47,6 +52,7 @@ public class MainActivity extends Activity implements
 
     private Player mPlayer;
 
+    private Button testRequest;
 
     private static final int REQUEST_CODE = 1337;
 
@@ -64,36 +70,37 @@ public class MainActivity extends Activity implements
         final TextView textView = (TextView)findViewById(R.id.song_text);
         textView.setTextSize(40);
         textView.setText("Hey bitch");
-
                 registerReceiver(new BroadcastReceiver() {
+                    public void onReceive(Context context, Intent intent) {
+                        // This is sent with all broadcasts, regardless of type. The value is taken from
+                        // System.currentTimeMillis(), which you can compare to in order to determine how
+                        // old the event is.
+                        long timeSentInMs = intent.getLongExtra("timeSent", 0L);
 
-            public void onReceive(Context context, Intent intent) {
-                // This is sent with all broadcasts, regardless of type. The value is taken from
-                // System.currentTimeMillis(), which you can compare to in order to determine how
-                // old the event is.
-                long timeSentInMs = intent.getLongExtra("timeSent", 0L);
+                        String action = intent.getAction();
+                        String trackId = "";
+                        if (action.equals(BroadcastTypes.METADATA_CHANGED)) {
+                            trackId = intent.getStringExtra("id");
+                            String artistName = intent.getStringExtra("artist");
+                            String albumName = intent.getStringExtra("album");
+                            String trackName = intent.getStringExtra("track");
+                            int trackLengthInSec = intent.getIntExtra("length", 0);
+                            textView.setText(trackId);
+                            // Do something with extracted information...
+                        } else if (action.equals(BroadcastTypes.PLAYBACK_STATE_CHANGED)) {
+                            boolean playing = intent.getBooleanExtra("playing", false);
+                            int positionInMs = intent.getIntExtra("playbackPosition", 0);
+                            // Do something with extracted information
+                        } else if (action.equals(BroadcastTypes.QUEUE_CHANGED)) {
+                            // Sent only as a notification, your app may want to respond accordingly.
+                        }
+                        Toast.makeText(context, trackId, Toast.LENGTH_LONG).show();
+                    }
 
-                String action = intent.getAction();
-                String trackId = "";
-                if (action.equals(BroadcastTypes.METADATA_CHANGED)) {
-                    trackId = intent.getStringExtra("id");
-                    String artistName = intent.getStringExtra("artist");
-                    String albumName = intent.getStringExtra("album");
-                    String trackName = intent.getStringExtra("track");
-                    int trackLengthInSec = intent.getIntExtra("length", 0);
-                    textView.setText(trackId);
-                    // Do something with extracted information...
-                } else if (action.equals(BroadcastTypes.PLAYBACK_STATE_CHANGED)) {
-                    boolean playing = intent.getBooleanExtra("playing", false);
-                    int positionInMs = intent.getIntExtra("playbackPosition", 0);
-                    // Do something with extracted information
-                } else if (action.equals(BroadcastTypes.QUEUE_CHANGED)) {
-                    // Sent only as a notification, your app may want to respond accordingly.
-                }
-                Toast.makeText(context, trackId, Toast.LENGTH_LONG).show();
-            }
+                }, new IntentFilter(BroadcastTypes.METADATA_CHANGED));
 
-        }, new IntentFilter(BroadcastTypes.METADATA_CHANGED));
+
+        
 
         /*
         AuthenticationRequest.Builder builder = new AuthenticationRequest.Builder(CLIENT_ID,

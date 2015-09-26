@@ -9,6 +9,10 @@
         android:layout_height="wrap_content"
         android:id="@+id/textView" />
 
+
+
+
+
     <Button
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
@@ -22,5 +26,11 @@
         android:layout_marginEnd="147dp" />
     <TextView  android:id="@+id/song_text" android:text="@string/hello_world" android:layout_width="wrap_content"
         android:layout_height="wrap_content" />
+
+    <Button
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Test Request"
+        android:id="@+id/testRequest"></Button>
 
 </RelativeLayout>

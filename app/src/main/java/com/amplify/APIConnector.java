@@ -58,7 +58,7 @@ public class APIConnector {
     }
 
     /**
-     *Posts the JSON data to the server from the spotify side. 
+     *Posts the JSON data to the server from the spotify side.
      * @param context The Current Activity that is posting the data
      */
     public void postData(Context context){
@@ -77,17 +77,15 @@ public class APIConnector {
                     Log.d("APIConnector", "Something went wrong");
                 }
             });
+            queue.add(request);
 
         }
         catch(JSONException e){
             Log.d("APIConnector", "Could not parse JSON from string");
         }
 
-
-
-
-
     }
+
 
 
 
