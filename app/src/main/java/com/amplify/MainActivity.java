@@ -1,5 +1,6 @@
 package com.amplify;
 
+import android.content.Context;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.view.Menu;
@@ -22,6 +23,9 @@ import com.spotify.sdk.android.player.Player;
 import com.spotify.sdk.android.player.PlayerNotificationCallback;
 import com.spotify.sdk.android.player.PlayerState;
 
+import java.io.FileOutputStream;
+import java.io.IOException;
+
 public class MainActivity extends Activity implements
         PlayerNotificationCallback, ConnectionStateCallback {
 
@@ -29,6 +33,8 @@ public class MainActivity extends Activity implements
     private static final String CLIENT_ID = "ed720d10115a4fafabf398bbba3e1551";
     // TODO: Replace with your redirect URI
     private static final String REDIRECT_URI = "amplify-android-success://callback";
+
+    private String FILENAME = "oAuth";
 
     private Player mPlayer;
 
@@ -56,6 +62,15 @@ public class MainActivity extends Activity implements
         if (requestCode == REQUEST_CODE) {
             AuthenticationResponse response = AuthenticationClient.getResponse(resultCode, intent);
             if (response.getType() == AuthenticationResponse.Type.TOKEN) {
+                try {
+                    //write the oAuthID to an internal file
+                    FileOutputStream fos = openFileOutput(FILENAME, Context.MODE_PRIVATE);
+                    fos.write(response.getAccessToken().getBytes());
+                    fos.close();
+                    Log.e("MainActivity", "Succesfully stored udid");
+                } catch (IOException e) {
+                    Log.e("MainActivity","Could not write udid to file " + e.getMessage());
+                }
                 Config playerConfig = new Config(this, response.getAccessToken(), CLIENT_ID);
                 mPlayer = Spotify.getPlayer(playerConfig, this, new Player.InitializationObserver() {
                     @Override
@@ -72,6 +87,11 @@ public class MainActivity extends Activity implements
                 });
             }
         }
+    }
+    
+    public void createGroup(View view) {
+        Intent intent = new Intent(this, CreateGroupActivity.class);
+        startActivity(intent);
     }
 
     @Override
