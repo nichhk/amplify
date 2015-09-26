@@ -93,9 +93,13 @@
     <orderEntry type="jdk" jdkName="Android API 23 Platform" jdkType="Android SDK" />
     <orderEntry type="sourceFolder" forTests="false" />
     <orderEntry type="library" exported="" name="appcompat-v7-23.0.1" level="project" />
+    <orderEntry type="library" exported="" name="org.apache.commons-collections4-4.0.net" level="project" />
     <orderEntry type="library" exported="" name="spotify-player-1.0.0-beta10" level="project" />
+    <orderEntry type="library" exported="" name="commons-collections4-4.0" level="project" />
     <orderEntry type="library" exported="" name="spotify-auth-1.0.0-beta10" level="project" />
+    <orderEntry type="library" exported="" name="org.apache.httpclient-4.5.net" level="project" />
     <orderEntry type="library" exported="" name="support-v4-23.0.1" level="project" />
+    <orderEntry type="library" exported="" name="httpclient-4.5" level="project" />
     <orderEntry type="library" exported="" name="support-annotations-23.0.1" level="project" />
   </component>
 </module>
