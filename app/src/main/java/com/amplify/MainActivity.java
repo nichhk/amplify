@@ -32,6 +32,7 @@ public class MainActivity extends Activity implements
 
     private Player mPlayer;
 
+
     private static final int REQUEST_CODE = 1337;
 
     @Override

@@ -33,4 +33,8 @@ dependencies {
     // This library handles music playback
     compile 'com.spotify.sdk:spotify-player:1.0.0-beta10@aar'
     compile 'com.android.support:appcompat-v7:23.0.1'
+    compile 'com.google.code.gson:gson:1.7.2'
+    compile project(":volley")
+    compile files('libs/javax.json-1.0.4.jar')
+
 }
