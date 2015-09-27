@@ -1,5 +1,6 @@
 package com.amplify;
 
+import android.content.ContentResolver;
 import android.content.Context;
 import android.content.BroadcastReceiver;
 import android.content.IntentFilter;
@@ -48,6 +49,7 @@ import org.apache.http.impl.client.DefaultHttpClient;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
+import org.w3c.dom.Text;
 
 import java.io.BufferedReader;
 import java.io.FileInputStream;
@@ -76,6 +78,8 @@ public class MainActivity extends Activity implements
     public static final String GROUP_ID_MESSAGE = "com.amplify.groupId";
 
     public static final int radioId = 18;
+
+    private boolean first = true;
 
     public static final String GROUP_NAME_MESSAGE = "com.amplify.name";
 
@@ -132,7 +136,6 @@ public class MainActivity extends Activity implements
     }
 
     private void setAllGroups(List<Group> allGroups) {
-        final Intent viewGroupIntent = new Intent(this, ViewGroupActivity.class);
         TableLayout tableLayout = (TableLayout)findViewById(R.id.groupTable);
         //row layout for each individual row (match parent and wrap)
         final RadioGroup radioGroup;
@@ -154,39 +157,48 @@ public class MainActivity extends Activity implements
         tableLayout.addView(radioGroup);
         //only add the join group button if there is some group to join
         if (allGroups.size() > 0) {
-            Button button = new Button(this);
-            button.setLayoutParams(rowItemLayout);
-            button.setText("Join Selected Group!");
-            //create the listener to join the selected group
-            View.OnClickListener clickListener = new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-                    int radioButtonID = radioGroup.getCheckedRadioButtonId();
-                    //do nothing if no group is selected
-                    if (radioButtonID == -1) {
-                        return;
-                    }
-                    //otherwise, go to the group with the params
-                    RadioButton radioButton = (RadioButton) radioGroup.findViewById(radioButtonID);
-                    String groupId = (String) radioButton.getTag();
-                    String groupName = (String) radioButton.getText();
-                    viewGroupIntent.putExtra(GROUP_NAME_MESSAGE, groupName);
-                    viewGroupIntent.putExtra(GROUP_ID_MESSAGE, groupId);
-                    //
-                    try {
-                        FileOutputStream fos = openFileOutput("isMaster", Context.MODE_PRIVATE);
-                        fos.write("false".getBytes());
-                        fos.close();
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
-                    //clear all of the radio buttons
-                    startActivity(viewGroupIntent);
-                }
-            };
-            tableLayout.addView(button);
-            button.setOnClickListener(clickListener);
+            first = false;
+            tableLayout.addView(makeJoinButton(radioGroup));
         }
+    }
+
+    private Button makeJoinButton(final RadioGroup radioGroup) {
+        Button button = new Button(this);
+        button.setLayoutParams(rowItemLayout);
+        final ContentResolver resolver = this.getContentResolver();
+        button.setText("Join Selected Group!");
+        //create the listener to join the selected group
+        View.OnClickListener clickListener = new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                int radioButtonID = radioGroup.getCheckedRadioButtonId();
+                //do nothing if no group is selected
+                if (radioButtonID == -1) {
+                    return;
+                }
+                //otherwise, go to the group with the params
+                RadioButton radioButton = (RadioButton) radioGroup.findViewById(radioButtonID);
+                String groupId = (String) radioButton.getTag();
+                String groupName = (String) radioButton.getText();
+                Map<String, String> params = new HashMap<>();
+                params.put("android_id", Settings.Secure.getString(resolver, Settings.Secure.ANDROID_ID));
+                params.put("group", groupId);
+                TextView textView = (TextView)findViewById(R.id.songAndGroup);
+                textView.setText("Song - " + songName + "    " +"Group - " + groupName);
+                sendJoinGroupToService(params, "https://shrouded-tundra-5129.herokuapp.com/group/join/");
+                //
+                try {
+                    FileOutputStream fos = openFileOutput("isMaster", Context.MODE_PRIVATE);
+                    fos.write("false".getBytes());
+                    fos.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+                //clear all of the radio buttons
+            }
+        };
+        button.setOnClickListener(clickListener);
+        return button;
     }
 
     private List<Group> getAllGroups() {
@@ -268,6 +280,7 @@ public class MainActivity extends Activity implements
         Log.d("CreateGroupAcitivty", "creating a group");
         EditText editText = (EditText) findViewById(R.id.groupName);
         String groupName = editText.getText().toString();
+        editText.setText("");
         StringBuilder builder = new StringBuilder();
         try {
             FileInputStream fis = openFileInput("oAuth");
@@ -285,8 +298,28 @@ public class MainActivity extends Activity implements
         sendGroupToService(params, "https://shrouded-tundra-5129.herokuapp.com/group/create/");
     }
 
-    private void sendGroupToService(final Map<String, String> params, final String path) {
+    private void sendJoinGroupToService(final Map<String, String> params, final String path) {
         final JSONObject json = new JSONObject(params);
+        Log.d("ViewGroupActivity", "android_id " + params.get("android_id"));
+        Log.d("ViewGroupActivity", "group " + params.get("group"));
+        RequestQueue queue = Volley.newRequestQueue(this);
+        JsonObjectRequest request = new JsonObjectRequest(Request.Method.PUT, path, json,
+                new Response.Listener<JSONObject>() {
+                    @Override
+                    public void onResponse(JSONObject response) {
+                        Log.d("ViewGroupActivity", "Successfully posted " + json.toString() + " to " + path);
+                    }
+                },
+                new Response.ErrorListener() {
+                    @Override
+                    public void onErrorResponse(VolleyError error) {
+                        Log.d("ViewGroupActivity", error.toString());
+                    }
+                });
+        queue.add(request);
+    }
+
+    private void sendGroupToService(final Map<String, String> params, final String path) {
         final RadioGroup radioGroup;
         if (findViewById(radioId) == null) {
             radioGroup = new RadioGroup(this);
@@ -310,6 +343,11 @@ public class MainActivity extends Activity implements
                     radioButton.setText(params.get("name"));
                     radioButton.setTag(groupId);
                     radioGroup.addView(radioButton);
+                    if (first) {
+                        Log.d("MainActicity", "creating the firs ttable ");
+                        TableLayout tableLayout = (TableLayout)findViewById(R.id.groupTable);
+                        tableLayout.addView(makeJoinButton(radioGroup));
+                    }
                     Log.d("MainActivity", "adding new radio button");
                     Log.d("CreateGroupActivity", "Created groupId in file and isMaster");
                 } catch (IOException e) {
@@ -336,6 +374,54 @@ public class MainActivity extends Activity implements
         queue.add(request);
     }
 
+    private String songName = "N/A";
+
+    public void slowDown(View view) {
+        mPlayer.pause();
+        new CountDownTimer(100, 10) {
+            public void onTick(long millisUntilFinished) {
+            }
+
+            public void onFinish() {
+                mPlayer.resume();
+            }
+        }.start();
+        Log.d("MainActivity","Slow down");
+
+    }
+
+    public void getSong(){
+        RequestQueue queue = Volley.newRequestQueue(this);
+        Log.d("**************", "CALLLING");
+        JsonObjectRequest request = new JsonObjectRequest(Request.Method.GET,
+                "http://ws.spotify.com/lookup/1/.json?uri="+curSong,
+                new Response.Listener<JSONObject>() {
+                    @Override
+                    public void onResponse(JSONObject response) {
+                        try {
+                            songName = response.getJSONObject("track").getString("name");
+                            Log.d("MainActivity", response.toString());
+                            JSONObject response1 = response.getJSONObject("track");
+                            Log.d("MainActivity", response1.toString());
+                            TextView textView = (TextView)findViewById(R.id.songAndGroup);
+                            String curInfoText = textView.getText().toString();
+                            String groupStuff = curInfoText.split("    ")[1];
+                            textView.setText("Song - "+songName + "    " + groupStuff);
+                        }catch (Exception e){
+                            Log.e("MainActivity", "Error parsing track name");
+                        }
+                    }
+                },
+                new Response.ErrorListener() {
+                    @Override
+                    public void onErrorResponse(VolleyError error) {
+                        Log.e("Main Activity", "There was an error getting the song name");
+                    }
+                });
+        queue.add(request);
+
+    }
+
 
     public void poll() {
         apiConnector.getUserInfo(getBaseContext(), new CallBack(){
@@ -359,9 +445,14 @@ public class MainActivity extends Activity implements
 
                                     try {
                                         final String song = (String) response.get("song");
+                                        if (song != null && songName.equals("N/A")) {
+
+                                            Log.d("MainActivity", "song not registering");
+                                        }
                                         Log.d("MainActivity", "playing " + song);
                                         if (song != null && !song.equals(curSong)) {
                                             curSong = song;
+                                            getSong();
                                             Log.d("MainActivity", "time = " + Long.toString(Math.round((double) response.get("start")) - System.currentTimeMillis()));
                                             final CountDownTimer songTimer = new CountDownTimer(Math.round((double) response.get("start")) - System.currentTimeMillis(), Long.MAX_VALUE){
                                                 @Override
