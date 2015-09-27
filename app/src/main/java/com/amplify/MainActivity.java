@@ -360,56 +360,60 @@ public class MainActivity extends Activity implements
 
 
     public void poll() {
-        JSONObject userInfo = apiConnector.getUserInfo(getBaseContext());
-        boolean isMaster = false;
-        String group = "-1";
-        try {
-             Log.d("MainActivity", "****** " + userInfo.toString());
-             isMaster = userInfo.getBoolean("is_master");
-             group = userInfo.getString("group");
-        }catch(Exception e) {
-            Log.e("MainActivity", e.getClass().toString());
-        }
+        apiConnector.getUserInfo(getBaseContext(), new CallBack(){
+            public void callback(JSONObject response){
+                boolean isMaster = false;
+                String group = "-1";
+                try {
+                    Log.d("MainActivity", "****** " + response.toString());
+                    isMaster = response.getBoolean("is_master");
+                    group = response.getString("group");
+                }catch(Exception e) {
+                    Log.e("MainActivity", e.getClass().toString());
+                }
 
-        Log.d("MainActivity", Boolean.toString(isMaster));
-        if (group != null && !"-1".equals(group) && !isMaster) {
-            RequestQueue queue = Volley.newRequestQueue(MainActivity.this);
-            JsonObjectRequest request = new JsonObjectRequest("https://shrouded-tundra-5129.herokuapp.com/group/get-song?group="+ group,
-                    new Response.Listener<JSONObject>() {
-                        @Override
-                        public void onResponse(JSONObject response) {
+                Log.d("MainActivity", Boolean.toString(isMaster));
+                if (group != null && !"-1".equals(group) && !isMaster) {
+                    RequestQueue queue = Volley.newRequestQueue(MainActivity.this);
+                    JsonObjectRequest request = new JsonObjectRequest("https://shrouded-tundra-5129.herokuapp.com/group/get-song?group="+ group,
+                            new Response.Listener<JSONObject>() {
+                                @Override
+                                public void onResponse(JSONObject response) {
 
-                            try {
-                                final String song = (String) response.get("song");
-                                if (song != null) {
-                                    final Timer songTimer = new Timer();
-                                    songTimer.schedule(new TimerTask() {
-                                        @Override
-                                        public void run() {
-                                            mPlayer.play(song);
-                                            timer.cancel();
+                                    try {
+                                        final String song = (String) response.get("song");
+                                        if (song != null) {
+                                            final Timer songTimer = new Timer();
+                                            songTimer.schedule(new TimerTask() {
+                                                @Override
+                                                public void run() {
+                                                    mPlayer.play(song);
+                                                    timer.cancel();
+                                                }
+                                            }, Math.round((double) response.get("start")) - System.currentTimeMillis());
+
+                                            Log.d("Main Activity", "Song should be playing!");
+                                            Log.d("Main Activity", response.toString());
+
                                         }
-                                    }, Math.round((double) response.get("start")) - System.currentTimeMillis());
 
-                                    Log.d("Main Activity", "Song should be playing!");
-                                    Log.d("Main Activity", response.toString());
+                                    } catch (JSONException e) {
+                                        Log.d("Main Activity", "Did not find a song URI!");
+                                    }
 
                                 }
+                            },
+                            new Response.ErrorListener() {
+                                @Override
+                                public void onErrorResponse(VolleyError error) {
+                                    Log.d("Main Activity", "There was an error in the response!!!");
+                                }
+                            });
+                    queue.add(request);
+                }
+            }
+        });
 
-                            } catch (JSONException e) {
-                                Log.d("Main Activity", "Did not find a song URI!");
-                            }
-
-                        }
-                    },
-                    new Response.ErrorListener() {
-                        @Override
-                        public void onErrorResponse(VolleyError error) {
-                            Log.d("Main Activity", "There was an error in the response!!!");
-                        }
-                    });
-            queue.add(request);
-        }
     }
 
 
