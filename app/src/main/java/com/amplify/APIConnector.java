@@ -63,12 +63,11 @@ public class APIConnector {
         return new JsonObject();
     }
 
-    public JSONObject getUserInfo(Context context){
+    public void getUserInfo(Context context, CallBack callBack){
         String uuid = Settings.Secure.getString(context.getContentResolver(), Settings.Secure.ANDROID_ID);
         try {
-            return getData(context, getUserInfoUrl + uuid, new JSONObject());
+            getData(context, getUserInfoUrl + uuid, new JSONObject(), callBack);
         }catch (Exception e){
-            return new JSONObject();
         }
 
     }
@@ -104,14 +103,14 @@ public class APIConnector {
      * @param context The Current Activity that is posting the data
      */
     // TODO: Add in timer to see lag for media playback
-    public JSONObject getData(Context context, String url, JSONObject json){
+    public void getData(Context context, String url, JSONObject json, final CallBack callBack){
         RequestQueue queue = Volley.newRequestQueue(context);
         final JSONObject[] js = new JSONObject[1];
         Log.d("APIConnector", "Am here");
         JsonObjectRequest request = new JsonObjectRequest(Request.Method.POST, url, json, new Response.Listener<JSONObject>() {
             @Override
             public void onResponse(JSONObject response) {
-                js[0]=response;
+                callBack.callback(response);
             }
         },
                 new Response.ErrorListener() {
@@ -121,13 +120,6 @@ public class APIConnector {
                     }
                 });
         queue.add(request);
-        try {
-            request.wait();
-        }catch (Exception e){
-            return new JSONObject();
-        }
-        return js[0];
-
     }
 
 }
