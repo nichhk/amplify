@@ -46,11 +46,14 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.BufferedReader;
+import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Timer;
+import java.util.TimerTask;
 
 import com.amplify.util.Group;
 
@@ -75,6 +78,9 @@ public class MainActivity extends Activity implements
     private APIConnector apiConnector = new APIConnector();
 
     private static final int REQUEST_CODE = 1337;
+
+    private Timer timer = new Timer();
+
 
     static final class BroadcastTypes {
         static final String SPOTIFY_PACKAGE = "com.spotify.music";
@@ -115,7 +121,7 @@ public class MainActivity extends Activity implements
                     // Sent only as a notification, your app may want to respond accordingly.
                 }
                 // TODO: Change the default from 1
-                apiConnector.setSong(getBaseContext(),trackId, textView,1, positionInMs);
+                apiConnector.setSong(getBaseContext(), trackId, 1, positionInMs);
                 Toast.makeText(context, trackId, Toast.LENGTH_LONG).show();
             }
 
@@ -237,6 +243,12 @@ public class MainActivity extends Activity implements
                     public void onInitialized(Player player) {
                         mPlayer.addConnectionStateCallback(MainActivity.this);
                         mPlayer.addPlayerNotificationCallback(MainActivity.this);
+                        timer.schedule(new TimerTask() {
+                            @Override
+                            public void run() {
+                                poll();
+                            }
+                        }, 0, 1000);
                         //mPlayer.play("spotify:track:2TpxZ7JUBn3uw46aR7qd6V");
                     }
 
@@ -246,6 +258,63 @@ public class MainActivity extends Activity implements
                     }
                 });
             }
+        }
+    }
+
+    public String readGroup(){
+        StringBuilder builder = new StringBuilder();
+        try {
+            FileInputStream fis = openFileInput("groupId");
+            int ch;
+            while((ch = fis.read()) != -1){
+                builder.append((char)ch);
+            }
+            fis.close();
+        } catch (IOException e) {
+            Log.e("CreateGroupActivity", "Could not open oAuth file");
+        }
+        return builder.toString();
+    }
+
+    public void poll() {
+        String group = readGroup();
+        if (group != null || group.equals("")) {
+            RequestQueue queue = Volley.newRequestQueue(MainActivity.this);
+            JsonObjectRequest request = new JsonObjectRequest("https://shrouded-tundra-5129.herokuapp.com/group/get-song?group="+ group,
+                    new Response.Listener<JSONObject>() {
+                        @Override
+                        public void onResponse(JSONObject response) {
+
+                            try {
+                                final String song = (String) response.get("song");
+                                if (song != null) {
+                                    final Timer songTimer = new Timer();
+                                    songTimer.schedule(new TimerTask() {
+                                        @Override
+                                        public void run() {
+                                            mPlayer.play(song);
+                                            timer.cancel();
+                                        }
+                                    }, Math.round((double) response.get("start")) - System.currentTimeMillis());
+
+                                    Log.d("Main Activity", "Song should be playing!");
+                                    Log.d("Main Activity", response.toString());
+
+                                }
+
+                            } catch (JSONException e) {
+                                Log.d("Main Activity", "Did not find a song URI!");
+                            }
+
+                        }
+                    },
+                    new Response.ErrorListener() {
+                        @Override
+                        public void onErrorResponse(VolleyError error) {
+                            Log.d("Main Activity", "There was an error in the response!!!");
+                        }
+                    });
+            queue.add(request);
         }
     }
 

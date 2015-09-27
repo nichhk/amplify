@@ -42,7 +42,7 @@ public class APIConnector {
         return gson.toJson(this);
     }
 
-    public JsonObject setSong(Context context, String songId, TextView textView, int groupId, int playbackPosition){
+    public JsonObject setSong(Context context, String songId,  int groupId, int playbackPosition){
         Gson gson = new Gson();
         JsonObject json = new JsonObject();
         String[] parsed = songId.split(":");
@@ -51,7 +51,7 @@ public class APIConnector {
         json.addProperty("playbackPosition",playbackPosition);
         String jsonString = gson.toJson(json);
         Log.d("APIConnector", "Hello");
-        textView.setText(jsonString);
+
 
 
         try {
