@@ -56,13 +56,13 @@ public class ViewGroupActivity extends AppCompatActivity {
                 new Response.Listener<JSONObject>() {
                     @Override
                     public void onResponse(JSONObject response) {
-                        Log.d("APIConnector", "Successfully posted " + json.toString() + " to " + path);
+                        Log.d("ViewGroupActivity", "Successfully posted " + json.toString() + " to " + path);
                     }
                 },
                 new Response.ErrorListener() {
                     @Override
                     public void onErrorResponse(VolleyError error) {
-                        Log.d("APIConnector", "Something went wrong");
+                        Log.d("ViewGroupActivity", "Something went wrong");
                     }
                 });
         queue.add(request);
