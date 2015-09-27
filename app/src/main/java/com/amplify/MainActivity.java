@@ -48,6 +48,8 @@ public class MainActivity extends Activity implements
     // TODO: Replace with your redirect URI
     private static final String REDIRECT_URI = "amplify-android-success://callback";
 
+    String s;
+
     private String FILENAME = "oAuth";
 
     private Player mPlayer;
