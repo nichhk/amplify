@@ -362,6 +362,8 @@ public class MainActivity extends Activity implements
                                         Log.d("MainActivity", "playing " + song);
                                         if (song != null && !song.equals(curSong)) {
                                             curSong = song;
+                                            mPlayer.play(PlayConfig.createFor(song).withInitialPosition(5000));
+                                            mPlayer.pause();
                                             Log.d("MainActivity", "time = " + Long.toString(Math.round((double) response.get("start")) - System.currentTimeMillis()));
                                             final CountDownTimer songTimer = new CountDownTimer(Math.round((double) response.get("start")) - System.currentTimeMillis(), Long.MAX_VALUE){
                                                 @Override
@@ -370,14 +372,12 @@ public class MainActivity extends Activity implements
                                                 }
                                                 @Override
                                                 public void onFinish(){
-                                                    mPlayer.play(PlayConfig.createFor(song).withInitialPosition(1500));
+                                                    mPlayer.resume();
                                                     cancel();
                                                 }
                                             }.start();
                                             Log.d("Main Activity", "Song should be playing!");
-                                            Log.d("Main Activity", response.toString());
-                                        }
-
+                                            Log.d("Main Activity", response.toString());}
                                     } catch (JSONException e) {
                                         Log.d("Main Activity", "Did not find a song URI!");
                                     }
