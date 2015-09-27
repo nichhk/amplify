@@ -7,6 +7,7 @@ import android.os.Bundle;
 
 import android.app.Activity;
 import android.content.Intent;
+import android.os.CountDownTimer;
 import android.provider.Settings;
 import android.util.Log;
 import android.view.View;
@@ -34,6 +35,7 @@ import com.spotify.sdk.android.authentication.AuthenticationClient;
 import com.spotify.sdk.android.authentication.AuthenticationRequest;
 import com.spotify.sdk.android.authentication.AuthenticationResponse;
 import com.spotify.sdk.android.player.Config;
+import com.spotify.sdk.android.player.PlayConfig;
 import com.spotify.sdk.android.player.Spotify;
 import com.spotify.sdk.android.player.ConnectionStateCallback;
 import com.spotify.sdk.android.player.Player;
@@ -85,9 +87,13 @@ public class MainActivity extends Activity implements
 
     private String FILENAME = "oAuth";
 
+    private String curSong;
+
     private Random rand = new Random();
 
     private Player mPlayer;
+
+    BroadcastReceiver receiver;
 
     private APIConnector apiConnector = new APIConnector();
 
@@ -113,36 +119,8 @@ public class MainActivity extends Activity implements
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        registerReceiver(new BroadcastReceiver() {
-            public void onReceive(Context context, Intent intent) {
-                // This is sent with all broadcasts, regardless of type. The value is taken from
-                // System.currentTimeMillis(), which you can compare to in order to determine how
-                // old the event is.
-                long timeSentInMs = intent.getLongExtra("timeSent", 0L);
-                int positionInMs = 0;
-                String action = intent.getAction();
-                String trackId = "";
-                if (action.equals(BroadcastTypes.METADATA_CHANGED)) {
-                    trackId = intent.getStringExtra("id");
-                    String artistName = intent.getStringExtra("artist");
-                    String albumName = intent.getStringExtra("album");
-                    String trackName = intent.getStringExtra("track");
-                    int trackLengthInSec = intent.getIntExtra("length", 0);
-                    // Do something with extracted information...
-                } else if (action.equals(BroadcastTypes.PLAYBACK_STATE_CHANGED)) {
-                    boolean playing = intent.getBooleanExtra("playing", false);
-                    positionInMs = intent.getIntExtra("playbackPosition", 0);
-                    // Do something with extracted information
-                } else if (action.equals(BroadcastTypes.QUEUE_CHANGED)) {
-                    // Sent only as a notification, your app may want to respond accordingly.
-                }
-                // TODO: Change the default from 1
-                apiConnector.setSong(getBaseContext(), trackId, 1, positionInMs);
-                Toast.makeText(context, trackId, Toast.LENGTH_LONG).show();
-            }
-
-        }, new IntentFilter(BroadcastTypes.METADATA_CHANGED));
-
+        receiver = new MyBroadcastReceiver(getBaseContext());
+        registerReceiver(receiver, new IntentFilter(BroadcastTypes.METADATA_CHANGED));
         AuthenticationRequest.Builder builder = new AuthenticationRequest.Builder(CLIENT_ID,
                 AuthenticationResponse.Type.TOKEN,
                 REDIRECT_URI);
@@ -275,7 +253,7 @@ public class MainActivity extends Activity implements
                             public void run() {
                                 poll();
                             }
-                        }, 0, 5000);
+                        }, 0, 4000);
                     }
                     @Override
                     public void onError(Throwable throwable) {
@@ -371,7 +349,6 @@ public class MainActivity extends Activity implements
                 }catch(Exception e) {
                     Log.e("MainActivity", e.getClass().toString());
                 }
-
                 Log.d("MainActivity", Boolean.toString(isMaster));
                 if (group != null && !"-1".equals(group) && !isMaster) {
                     RequestQueue queue = Volley.newRequestQueue(MainActivity.this);
@@ -382,19 +359,23 @@ public class MainActivity extends Activity implements
 
                                     try {
                                         final String song = (String) response.get("song");
-                                        if (song != null) {
-                                            final Timer songTimer = new Timer();
-                                            songTimer.schedule(new TimerTask() {
+                                        Log.d("MainActivity", "playing " + song);
+                                        if (song != null && !song.equals(curSong)) {
+                                            curSong = song;
+                                            Log.d("MainActivity", "time = " + Long.toString(Math.round((double) response.get("start")) - System.currentTimeMillis()));
+                                            final CountDownTimer songTimer = new CountDownTimer(Math.round((double) response.get("start")) - System.currentTimeMillis(), Long.MAX_VALUE){
                                                 @Override
-                                                public void run() {
-                                                    mPlayer.play(song);
-                                                    timer.cancel();
-                                                }
-                                            }, Math.round((double) response.get("start")) - System.currentTimeMillis());
+                                                public void onTick(long millisUntilFinished) {
 
+                                                }
+                                                @Override
+                                                public void onFinish(){
+                                                    mPlayer.play(PlayConfig.createFor(song).withInitialPosition(1500));
+                                                    cancel();
+                                                }
+                                            }.start();
                                             Log.d("Main Activity", "Song should be playing!");
                                             Log.d("Main Activity", response.toString());
-
                                         }
 
                                     } catch (JSONException e) {
@@ -455,6 +436,7 @@ public class MainActivity extends Activity implements
     @Override
     protected void onDestroy() {
         super.onDestroy();
+        this.unregisterReceiver(receiver);
         Spotify.destroyPlayer(this);
     }
 }

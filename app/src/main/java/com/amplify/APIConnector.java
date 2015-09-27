@@ -17,6 +17,7 @@ import com.google.gson.Gson;
 import java.io.*;
 import java.lang.ref.ReferenceQueue;
 import java.net.*;
+import java.util.HashMap;
 import java.util.Map;
 
 import com.android.volley.toolbox.Volley;
@@ -107,9 +108,10 @@ public class APIConnector {
         RequestQueue queue = Volley.newRequestQueue(context);
         final JSONObject[] js = new JSONObject[1];
         Log.d("APIConnector", "Am here");
-        JsonObjectRequest request = new JsonObjectRequest(Request.Method.POST, url, json, new Response.Listener<JSONObject>() {
+        JsonObjectRequest request = new JsonObjectRequest(Request.Method.GET, url, new Response.Listener<JSONObject>() {
             @Override
             public void onResponse(JSONObject response) {
+                Log.d("APIConnect", "went well");
                 callBack.callback(response);
             }
         },
