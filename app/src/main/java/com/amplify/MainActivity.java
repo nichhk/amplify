@@ -93,9 +93,6 @@ public class MainActivity extends Activity implements
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        //final TextView textView = (TextView)findViewById(R.id.song_text);
-        //textView.setTextSize(40);
-        //textView.setText("Hey bitch");
         registerReceiver(new BroadcastReceiver() {
             public void onReceive(Context context, Intent intent) {
                 // This is sent with all broadcasts, regardless of type. The value is taken from
@@ -111,7 +108,6 @@ public class MainActivity extends Activity implements
                     String albumName = intent.getStringExtra("album");
                     String trackName = intent.getStringExtra("track");
                     int trackLengthInSec = intent.getIntExtra("length", 0);
-                    //textView.setText(trackId);
                     // Do something with extracted information...
                 } else if (action.equals(BroadcastTypes.PLAYBACK_STATE_CHANGED)) {
                     boolean playing = intent.getBooleanExtra("playing", false);
@@ -177,6 +173,14 @@ public class MainActivity extends Activity implements
                 String groupName = (String) radioButton.getText();
                 viewGroupIntent.putExtra(GROUP_NAME_MESSAGE, groupName);
                 viewGroupIntent.putExtra(GROUP_ID_MESSAGE, groupId);
+                //
+                try {
+                    FileOutputStream fos = openFileOutput("isMaster", Context.MODE_PRIVATE);
+                    fos.write("false".getBytes());
+                    fos.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
                 //clear all of the radio buttons
                 startActivity(viewGroupIntent);
             }
@@ -251,7 +255,6 @@ public class MainActivity extends Activity implements
                         }, 0, 1000);
                         //mPlayer.play("spotify:track:2TpxZ7JUBn3uw46aR7qd6V");
                     }
-
                     @Override
                     public void onError(Throwable throwable) {
                         Log.e("MainActivity", "Could not initialize player: " + throwable.getMessage());
