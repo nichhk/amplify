@@ -50,14 +50,14 @@ public class ViewGroupActivity extends AppCompatActivity {
             Log.e("CreateGroupActivity", "Could not open oAuth file");
         }
         params.put("android_id", Settings.Secure.getString(this.getContentResolver(), Settings.Secure.ANDROID_ID));
-        params.put("groupId", intent.getStringExtra(MainActivity.GROUP_ID_MESSAGE));
+        params.put("group", intent.getStringExtra(MainActivity.GROUP_ID_MESSAGE));
         sendGroupToService(params, url);
     }
 
     private void sendGroupToService(Map<String, String> params, final String path) {
         final JSONObject json = new JSONObject(params);
-        Log.d("ViewGroupActivity", "oauth " + params.get("oauth"));
-        Log.d("ViewGroupActivity", "groupId " + params.get("groupId"));
+        Log.d("ViewGroupActivity", "android_id " + params.get("android_id"));
+        Log.d("ViewGroupActivity", "group " + params.get("group"));
         RequestQueue queue = Volley.newRequestQueue(this);
         JsonObjectRequest request = new JsonObjectRequest(Request.Method.PUT, path, json,
                 new Response.Listener<JSONObject>() {

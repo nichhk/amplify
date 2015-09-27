@@ -1,7 +1,7 @@
 <resources>
     <string name="app_name">Amplify</string>
 
-    <string name="hello_world">All The Music Groups</string>
+    <string name="hello_world">Amplified</string>
     <string name="action_settings">Settings</string>
     <string name="title_activity_create_group">Create Group</string>
 </resources>
