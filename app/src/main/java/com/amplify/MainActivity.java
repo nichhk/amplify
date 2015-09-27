@@ -136,10 +136,10 @@ public class MainActivity extends Activity implements
         ViewGroup.LayoutParams rowItemLayout = new ViewGroup.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT);
         final RadioGroup radioGroup = new RadioGroup(this);
-        int i = 0;
         Log.d("MainActivity", Integer.toString(allGroups.size()));
         //add all the radio button groups
-        for (Group group : allGroups) {
+        for (int i = 0; i < allGroups.size(); i++) {
+            Group group = allGroups.get(i);
             RadioButton radioButton = new RadioButton(this);
             radioButton.setLayoutParams(rowItemLayout);
             radioButton.setId(i);
