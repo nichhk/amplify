@@ -22,10 +22,6 @@
             android:name="com.spotify.sdk.android.authentication.LoginActivity"
             android:theme="@android:style/Theme.Translucent.NoTitleBar" />
         <activity
-            android:name=".CreateGroupActivity"
-            android:label="@string/title_activity_create_group" >
-        </activity>
-        <activity
             android:name=".ViewGroupActivity"
             android:label="View Group" >
         </activity>

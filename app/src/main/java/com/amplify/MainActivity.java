@@ -7,10 +7,12 @@ import android.os.Bundle;
 
 import android.app.Activity;
 import android.content.Intent;
+import android.provider.Settings;
 import android.util.Log;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
+import android.widget.EditText;
 import android.widget.RadioButton;
 import android.widget.RadioGroup;
 import android.widget.TableLayout;
@@ -51,9 +53,14 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+
 import java.util.Timer;
 import java.util.TimerTask;
+
+import java.util.Map;
+
 
 import com.amplify.util.Group;
 
@@ -93,9 +100,6 @@ public class MainActivity extends Activity implements
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        //final TextView textView = (TextView)findViewById(R.id.song_text);
-        //textView.setTextSize(40);
-        //textView.setText("Hey bitch");
         registerReceiver(new BroadcastReceiver() {
             public void onReceive(Context context, Intent intent) {
                 // This is sent with all broadcasts, regardless of type. The value is taken from
@@ -111,7 +115,6 @@ public class MainActivity extends Activity implements
                     String albumName = intent.getStringExtra("album");
                     String trackName = intent.getStringExtra("track");
                     int trackLengthInSec = intent.getIntExtra("length", 0);
-                    //textView.setText(trackId);
                     // Do something with extracted information...
                 } else if (action.equals(BroadcastTypes.PLAYBACK_STATE_CHANGED)) {
                     boolean playing = intent.getBooleanExtra("playing", false);
@@ -159,30 +162,41 @@ public class MainActivity extends Activity implements
         }
         //add the radio group to the table layout
         tableLayout.addView(radioGroup);
-        //create the listener to join the selected group
-        Button button = new Button(this);
-        button.setLayoutParams(rowItemLayout);
-        button.setText("Join Selected Group!");
-        View.OnClickListener clickListener = new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                int radioButtonID = radioGroup.getCheckedRadioButtonId();
-                //do nothing if no group is selected
-                if (radioButtonID == -1) {
-                    return;
+        //only add the join group button if there is some group to join
+        if (allGroups.size() > 0) {
+            Button button = new Button(this);
+            button.setLayoutParams(rowItemLayout);
+            button.setText("Join Selected Group!");
+            //create the listener to join the selected group
+            View.OnClickListener clickListener = new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    int radioButtonID = radioGroup.getCheckedRadioButtonId();
+                    //do nothing if no group is selected
+                    if (radioButtonID == -1) {
+                        return;
+                    }
+                    //otherwise, go to the group with the params
+                    RadioButton radioButton = (RadioButton) radioGroup.findViewById(radioButtonID);
+                    String groupId = (String) radioButton.getTag();
+                    String groupName = (String) radioButton.getText();
+                    viewGroupIntent.putExtra(GROUP_NAME_MESSAGE, groupName);
+                    viewGroupIntent.putExtra(GROUP_ID_MESSAGE, groupId);
+                    //
+                    try {
+                        FileOutputStream fos = openFileOutput("isMaster", Context.MODE_PRIVATE);
+                        fos.write("false".getBytes());
+                        fos.close();
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                    //clear all of the radio buttons
+                    startActivity(viewGroupIntent);
                 }
-                //otherwise, go to the group with the params
-                RadioButton radioButton = (RadioButton)radioGroup.findViewById(radioButtonID);
-                String groupId = (String) radioButton.getTag();
-                String groupName = (String) radioButton.getText();
-                viewGroupIntent.putExtra(GROUP_NAME_MESSAGE, groupName);
-                viewGroupIntent.putExtra(GROUP_ID_MESSAGE, groupId);
-                //clear all of the radio buttons
-                startActivity(viewGroupIntent);
-            }
-        };
-        tableLayout.addView(button);
-        button.setOnClickListener(clickListener);
+            };
+            tableLayout.addView(button);
+            button.setOnClickListener(clickListener);
+        }
     }
 
     private List<Group> getAllGroups() {
@@ -225,6 +239,7 @@ public class MainActivity extends Activity implements
         super.onActivityResult(requestCode, resultCode, intent);
         getAllGroups();
         // Check if result comes from the correct activity
+
         if (requestCode == REQUEST_CODE) {
             AuthenticationResponse response = AuthenticationClient.getResponse(resultCode, intent);
             if (response.getType() == AuthenticationResponse.Type.TOKEN) {
@@ -251,7 +266,6 @@ public class MainActivity extends Activity implements
                         }, 0, 1000);
                         //mPlayer.play("spotify:track:2TpxZ7JUBn3uw46aR7qd6V");
                     }
-
                     @Override
                     public void onError(Throwable throwable) {
                         Log.e("MainActivity", "Could not initialize player: " + throwable.getMessage());
@@ -319,8 +333,57 @@ public class MainActivity extends Activity implements
     }
 
     public void createGroup(View view) {
-        Intent intent = new Intent(this, CreateGroupActivity.class);
-        startActivity(intent);
+        Log.d("CreateGroupAcitivty", "creating a group");
+        EditText editText = (EditText) findViewById(R.id.groupName);
+        String groupName = editText.getText().toString();
+        StringBuilder builder = new StringBuilder();
+        try {
+            FileInputStream fis = openFileInput("oAuth");
+            int ch;
+            while((ch = fis.read()) != -1){
+                builder.append((char)ch);
+            }
+        } catch (IOException e) {
+            Log.e("CreateGroupActivity", "Could not open oAuth file");
+        }
+        Map<String, String> params = new HashMap<>();
+        params.put("android_id", Settings.Secure.getString(this.getContentResolver(), Settings.Secure.ANDROID_ID));
+        params.put("name", groupName);
+        Log.d("CreateGroupActivity", "groupname " + groupName);
+        sendGroupToService(params, "https://shrouded-tundra-5129.herokuapp.com/group/create/");
+    }
+
+    private void sendGroupToService(Map<String, String> params, final String path) {
+        final JSONObject json = new JSONObject(params);
+        RequestQueue queue = Volley.newRequestQueue(this);
+        JsonObjectRequest request = new JsonObjectRequest(Request.Method.POST, path, json,
+                new Response.Listener<JSONObject>() {
+                    @Override
+                    public void onResponse(JSONObject response) {
+                        Log.d("CreateGroupActivity", "Successfully posted " + json.toString() + " to " + path);
+                        try {
+                            //write the group id, and write true for isMaster
+                            String groupId = response.getString("groupId");
+                            FileOutputStream fos = openFileOutput("groupId", Context.MODE_PRIVATE);
+                            fos.write(groupId.getBytes());
+                            fos = openFileOutput("isMaster", Context.MODE_PRIVATE);
+                            fos.write("true".getBytes());
+                            fos.close();
+                            Log.d("CreateGroupActivity", "Created groupId in file and isMaster");
+                        } catch (JSONException e) {
+                            Log.e("CreateGroupActivity", "Could not parse response json");
+                        } catch (IOException e) {
+                            Log.e("CreateGroupActivity", "Could not write to groupId file");
+                        }
+                    }
+                },
+                new Response.ErrorListener() {
+                    @Override
+                    public void onErrorResponse(VolleyError error) {
+                        Log.d("CreateGroupActivity", "Something went wrong");
+                    }
+                });
+        queue.add(request);
     }
 
     @Override
