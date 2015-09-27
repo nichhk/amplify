@@ -37,18 +37,18 @@ public class ViewGroupActivity extends AppCompatActivity {
         Intent intent = getIntent();
         title.setText(intent.getStringExtra(MainActivity.GROUP_NAME_MESSAGE));
         Map<String, String> params = new HashMap<>();
-        StringBuilder authbuilder = new StringBuilder();
-        try {
-            FileInputStream fis = openFileInput("oAuth");
-            int ch;
-            //create the oauth
-            while((ch = fis.read()) != -1){
-                authbuilder.append((char)ch);
-            }
-            fis.close();
-        } catch (IOException e) {
-            Log.e("CreateGroupActivity", "Could not open oAuth file");
-        }
+//        StringBuilder authbuilder = new StringBuilder();
+//        try {
+//            FileInputStream fis = openFileInput("oAuth");
+//            int ch;
+//            //create the oauth
+//            while((ch = fis.read()) != -1){
+//                authbuilder.append((char)ch);
+//            }
+//            fis.close();
+//        } catch (IOException e) {
+//            Log.e("CreateGroupActivity", "Could not open oAuth file");
+//        }
         params.put("android_id", Settings.Secure.getString(this.getContentResolver(), Settings.Secure.ANDROID_ID));
         params.put("group", intent.getStringExtra(MainActivity.GROUP_ID_MESSAGE));
         sendGroupToService(params, url);
@@ -96,19 +96,4 @@ public class ViewGroupActivity extends AppCompatActivity {
         return super.onOptionsItemSelected(item);
     }
 
-    private boolean isMaster() {
-        StringBuilder builder = new StringBuilder();
-
-        try {
-            FileInputStream fis = openFileInput("isMaster");
-            int ch;
-            while((ch = fis.read()) != -1){
-                builder.append((char)ch);
-            }
-            fis.close();
-        } catch (IOException e) {
-            Log.e("CreateGroupActivity", "Could not open oAuth file");
-        }
-        return "true".equals(builder.toString());
-    }
 }

@@ -17,6 +17,7 @@
     <Button
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:background="#BDBDBD"
         android:text="Create New Group"
         android:id="@+id/createGroup"
         android:onClick="createGroup"
