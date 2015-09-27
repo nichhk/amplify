@@ -56,6 +56,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Timer;
+import java.util.TimerTask;
 
 import com.amplify.util.Group;
 
@@ -78,6 +80,8 @@ public class MainActivity extends Activity implements
     private Player mPlayer;
 
     private APIConnector apiConnector = new APIConnector();
+
+    private Timer timer = new Timer();
 
     private static final int REQUEST_CODE = 1337;
 
@@ -116,7 +120,7 @@ public class MainActivity extends Activity implements
                     // Sent only as a notification, your app may want to respond accordingly.
                 }
                 // TODO: Change the default from 1
-                apiConnector.setSong(getBaseContext(),trackId, textView,1, positionInMs);
+                apiConnector.setSong(getBaseContext(), trackId, 1, positionInMs);
                 Toast.makeText(context, trackId, Toast.LENGTH_LONG).show();
             }
 
@@ -250,7 +254,12 @@ public class MainActivity extends Activity implements
                     public void onInitialized(Player player) {
                         mPlayer.addConnectionStateCallback(MainActivity.this);
                         mPlayer.addPlayerNotificationCallback(MainActivity.this);
-                        //mPlayer.play("spotify:track:2TpxZ7JUBn3uw46aR7qd6V");
+                        timer.schedule(new TimerTask() {
+                            @Override
+                            public void run() {
+                                poll();
+                            }
+                        }, 0, 5000);
                     }
                     @Override
                     public void onError(Throwable throwable) {
@@ -314,6 +323,61 @@ public class MainActivity extends Activity implements
                 });
         queue.add(request);
     }
+
+
+    public void poll() {
+        JSONObject userInfo = apiConnector.getUserInfo(getBaseContext());
+        boolean isMaster = false;
+        String group = "-1";
+        try {
+             Log.d("MainActivity", "****** " + userInfo.toString());
+             isMaster = userInfo.getBoolean("is_master");
+             group = userInfo.getString("group");
+        }catch(Exception e) {
+            Log.e("MainActivity", e.getClass().toString());
+        }
+
+        Log.d("MainActivity", Boolean.toString(isMaster));
+        if (group != null && !"-1".equals(group) && !isMaster) {
+            RequestQueue queue = Volley.newRequestQueue(MainActivity.this);
+            JsonObjectRequest request = new JsonObjectRequest("https://shrouded-tundra-5129.herokuapp.com/group/get-song?group="+ group,
+                    new Response.Listener<JSONObject>() {
+                        @Override
+                        public void onResponse(JSONObject response) {
+
+                            try {
+                                final String song = (String) response.get("song");
+                                if (song != null) {
+                                    final Timer songTimer = new Timer();
+                                    songTimer.schedule(new TimerTask() {
+                                        @Override
+                                        public void run() {
+                                            mPlayer.play(song);
+                                            timer.cancel();
+                                        }
+                                    }, Math.round((double) response.get("start")) - System.currentTimeMillis());
+
+                                    Log.d("Main Activity", "Song should be playing!");
+                                    Log.d("Main Activity", response.toString());
+
+                                }
+
+                            } catch (JSONException e) {
+                                Log.d("Main Activity", "Did not find a song URI!");
+                            }
+
+                        }
+                    },
+                    new Response.ErrorListener() {
+                        @Override
+                        public void onErrorResponse(VolleyError error) {
+                            Log.d("Main Activity", "There was an error in the response!!!");
+                        }
+                    });
+            queue.add(request);
+        }
+    }
+
 
     @Override
     public void onLoggedIn() {
