@@ -25,6 +25,10 @@
             android:name=".CreateGroupActivity"
             android:label="@string/title_activity_create_group" >
         </activity>
+        <activity
+            android:name=".ViewGroupActivity"
+            android:label="View Group" >
+        </activity>
     </application>
 
 

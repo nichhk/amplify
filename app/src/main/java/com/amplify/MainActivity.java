@@ -18,6 +18,16 @@ import android.widget.TableRow;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.android.volley.AuthFailureError;
+import com.android.volley.Request;
+import com.android.volley.RequestQueue;
+import com.android.volley.Response;
+import com.android.volley.VolleyError;
+import com.android.volley.toolbox.JsonArrayRequest;
+import com.android.volley.toolbox.JsonObjectRequest;
+import com.android.volley.toolbox.StringRequest;
+
+import com.android.volley.toolbox.Volley;
 import com.spotify.sdk.android.authentication.AuthenticationClient;
 import com.spotify.sdk.android.authentication.AuthenticationRequest;
 import com.spotify.sdk.android.authentication.AuthenticationResponse;
@@ -56,7 +66,7 @@ public class MainActivity extends Activity implements
 
     private static final String REDIRECT_URI = "amplify-android-success://callback";
 
-    private static final String GROUP_URL = "https://www.google.com";
+    private static final String GROUP_URL = "https://shrouded-tundra-5129.herokuapp.com/group/list/";
 
     private String FILENAME = "oAuth";
 
@@ -77,10 +87,9 @@ public class MainActivity extends Activity implements
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        final TextView textView = (TextView)findViewById(R.id.song_text);
-        textView.setTextSize(40);
-        textView.setText("Hey bitch");
-        //set all the groups by creating radio buttons and an add group
+        //final TextView textView = (TextView)findViewById(R.id.song_text);
+        //textView.setTextSize(40);
+        //textView.setText("Hey bitch");
         registerReceiver(new BroadcastReceiver() {
             public void onReceive(Context context, Intent intent) {
                 // This is sent with all broadcasts, regardless of type. The value is taken from
@@ -96,7 +105,7 @@ public class MainActivity extends Activity implements
                     String albumName = intent.getStringExtra("album");
                     String trackName = intent.getStringExtra("track");
                     int trackLengthInSec = intent.getIntExtra("length", 0);
-                    textView.setText(trackId);
+                    //textView.setText(trackId);
                     // Do something with extracted information...
                 } else if (action.equals(BroadcastTypes.PLAYBACK_STATE_CHANGED)) {
                     boolean playing = intent.getBooleanExtra("playing", false);
@@ -122,9 +131,8 @@ public class MainActivity extends Activity implements
 
     }
 
-    private void setAllGroups() {
+    private void setAllGroups(List<Group> allGroups) {
         final Intent viewGroupIntent = new Intent(this, ViewGroupActivity.class);
-        List<Group> allGroups = getAllGroups();
         TableLayout tableLayout = (TableLayout)findViewById(R.id.groupTable);
         //row layout for each individual row (match parent and wrap)
         TableRow.LayoutParams rowLayout = new TableRow.LayoutParams(TableRow.LayoutParams.MATCH_PARENT,
@@ -133,18 +141,19 @@ public class MainActivity extends Activity implements
                 ViewGroup.LayoutParams.WRAP_CONTENT);
         final RadioGroup radioGroup = new RadioGroup(this);
         int i = 0;
+        Log.d("MainActivity", Integer.toString(allGroups.size()));
+        //add all the radio button groups
         for (Group group : allGroups) {
-            TableRow tableRow = new TableRow(this);
-            tableRow.setLayoutParams(rowLayout);
             RadioButton radioButton = new RadioButton(this);
             radioButton.setLayoutParams(rowItemLayout);
             radioButton.setId(i);
             radioButton.setText(group.getName());
             radioButton.setTag(group.getId());
             radioGroup.addView(radioButton);
-            tableRow.addView(radioButton);
-            tableLayout.addView(tableRow);
         }
+        //add the radio group to the table layout
+        tableLayout.addView(radioGroup);
+        //create the listener to join the selected group
         Button button = new Button(this);
         button.setLayoutParams(rowItemLayout);
         button.setText("Join Selected Group!");
@@ -162,6 +171,7 @@ public class MainActivity extends Activity implements
                 String groupName = (String) radioButton.getText();
                 viewGroupIntent.putExtra(GROUP_NAME_MESSAGE, groupName);
                 viewGroupIntent.putExtra(GROUP_ID_MESSAGE, groupId);
+                //clear all of the radio buttons
                 startActivity(viewGroupIntent);
             }
         };
@@ -170,51 +180,36 @@ public class MainActivity extends Activity implements
     }
 
     private List<Group> getAllGroups() {
-        DefaultHttpClient httpClient = new DefaultHttpClient();
-        //get all of the groups from the api
-        List<Group> groups = new ArrayList<>();
-        HttpGet getRequest = new HttpGet(GROUP_URL);
-        getRequest.addHeader("accept", "application/json");
-        HttpResponse response;
-        try {
-            response = httpClient.execute(getRequest);
-        } catch (Exception e) {
-            Log.e("MainActivity", "Could not get the groups from the api due to android issues");
-            return groups;
-        }
-        if (response.getStatusLine().getStatusCode() != 200) {
-            Log.e("MainActivity", "Bad response from api");
-        }
-        //parse the response entity as an array of json objects
-        StringBuilder jsonStringBuilder = new StringBuilder();
-        JSONArray jsonObject;
-        try {
-            BufferedReader br = new BufferedReader(
-                    new InputStreamReader((response.getEntity().getContent())));
-            String output;
-            while ((output = br.readLine()) != null) {
-                jsonStringBuilder.append(output);
-            }
-            jsonObject = new JSONArray(jsonStringBuilder.toString());
-        } catch (IOException e) {
-            Log.e("MainActivity", "Could not read the response from the server");
-            return groups;
-        } catch (JSONException e) {
-            Log.e("MainActivity", "Could not parse JSON list of groups");
-            return groups;
-        }
-        //go through the list of group objects and add them to an array
-        for (int i = 0; i < jsonObject.length(); i++) {
-            try {
-                JSONObject groupJSON = jsonObject.getJSONObject(i);
-                Group group = new Group(groupJSON.getString("name"), groupJSON.getString("id"),
-                        groupJSON.getString("cur_son"));
-                groups.add(group);
-            } catch (JSONException e) {
-                Log.e("MainActivity", "Could not parse individual json object");
-            }
-        }
-        httpClient.getConnectionManager().shutdown();
+        final List<Group> groups = new ArrayList<>();
+        RequestQueue queue = Volley.newRequestQueue(this);
+        JsonArrayRequest request = new JsonArrayRequest(Request.Method.GET, GROUP_URL,
+                new Response.Listener<JSONArray>() {
+                    @Override
+                    public void onResponse(JSONArray response) {
+                        Log.d("MainActivity", "got all the groups");
+                        //go through the list of group objects and add them to an array
+                        for (int i = 0; i < response.length(); i++) {
+                            try {
+                                JSONObject groupJSON = response.getJSONObject(i);
+                                Group group = new Group(groupJSON.getString("name"), groupJSON.getString("id"),
+                                        groupJSON.getString("song"));
+                                groups.add(group);
+                            } catch (JSONException e) {
+                                Log.e("MainActivity", "Could not parse individual json object");
+                            }
+                        }
+                        setAllGroups(groups);
+                    }
+                },
+                new Response.ErrorListener() {
+                    @Override
+                    public void onErrorResponse(VolleyError error) {
+                        Log.d("APIConnector", "Something went wrong");
+                    }
+                });
+        queue.add(request);
+
+        Log.d("MainActivity", "returning the groups");
         return groups;
     }
 
@@ -222,7 +217,7 @@ public class MainActivity extends Activity implements
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent intent) {
         super.onActivityResult(requestCode, resultCode, intent);
-       // setAllGroups();
+        getAllGroups();
         // Check if result comes from the correct activity
         if (requestCode == REQUEST_CODE) {
             AuthenticationResponse response = AuthenticationClient.getResponse(resultCode, intent);
@@ -232,7 +227,7 @@ public class MainActivity extends Activity implements
                     FileOutputStream fos = openFileOutput(FILENAME, Context.MODE_PRIVATE);
                     fos.write(response.getAccessToken().getBytes());
                     fos.close();
-                    Log.e("MainActivity", "Succesfully stored udid");
+                    Log.d("MainActivity", "Succesfully stored udid");
                 } catch (IOException e) {
                     Log.e("MainActivity","Could not write udid to file " + e.getMessage());
                 }
