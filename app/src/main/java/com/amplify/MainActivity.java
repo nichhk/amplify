@@ -77,6 +77,8 @@ public class MainActivity extends Activity implements
 
     private Player mPlayer;
 
+    private APIConnector apiConnector = new APIConnector();
+
     private static final int REQUEST_CODE = 1337;
 
     static final class BroadcastTypes {
@@ -96,7 +98,7 @@ public class MainActivity extends Activity implements
                 // System.currentTimeMillis(), which you can compare to in order to determine how
                 // old the event is.
                 long timeSentInMs = intent.getLongExtra("timeSent", 0L);
-
+                int positionInMs = 0;
                 String action = intent.getAction();
                 String trackId = "";
                 if (action.equals(BroadcastTypes.METADATA_CHANGED)) {
@@ -108,11 +110,13 @@ public class MainActivity extends Activity implements
                     // Do something with extracted information...
                 } else if (action.equals(BroadcastTypes.PLAYBACK_STATE_CHANGED)) {
                     boolean playing = intent.getBooleanExtra("playing", false);
-                    int positionInMs = intent.getIntExtra("playbackPosition", 0);
+                    positionInMs = intent.getIntExtra("playbackPosition", 0);
                     // Do something with extracted information
                 } else if (action.equals(BroadcastTypes.QUEUE_CHANGED)) {
                     // Sent only as a notification, your app may want to respond accordingly.
                 }
+                // TODO: Change the default from 1
+                apiConnector.setSong(getBaseContext(),trackId, textView,1, positionInMs);
                 Toast.makeText(context, trackId, Toast.LENGTH_LONG).show();
             }
 

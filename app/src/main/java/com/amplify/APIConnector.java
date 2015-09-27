@@ -2,6 +2,7 @@ package com.amplify;
 import android.app.DownloadManager;
 import android.content.Context;
 import android.util.Log;
+import android.widget.TextView;
 
 import com.android.volley.AuthFailureError;
 import com.android.volley.Request;
@@ -19,10 +20,8 @@ import java.util.Map;
 import com.android.volley.toolbox.Volley;
 import com.google.gson.JsonObject;
 
+import org.json.JSONException;
 import org.json.JSONObject;
-import org.json.*;
-
-import javax.json.Json;
 
 /**
  * Created by lukesamora on 9/26/15.
@@ -30,60 +29,60 @@ import javax.json.Json;
 public class APIConnector {
 
     //endpoint subject to change
-    private final static String url = "www.amplify.com/play";
-    private final String songURI;
-    private final int groupID;
-    private final long time;
+    private final static String baseUrl = "https://shrouded-tundra-5129.herokuapp.com/";
+    private final static String setSongUrl = baseUrl + "group/set-song/";
 
-    public APIConnector(String id, int group, long time){
-        this.songURI = id;
-        this.groupID = group;
-        this.time = time;
+
+    public APIConnector(){
 
     }
-
-    public long getTime() {
-        return time;
-    }
-
-    public int getGroupID() {return groupID;}
-
-    public String getSongURI() {return songURI;}
-
 
     public String getJSON(){
         Gson gson = new Gson();
         return gson.toJson(this);
+    }
 
+    public JsonObject setSong(Context context, String songId, TextView textView, int groupId, int playbackPosition){
+        Gson gson = new Gson();
+        JsonObject json = new JsonObject();
+        String[] parsed = songId.split(":");
+        json.addProperty("song", parsed[parsed.length-1]);
+        json.addProperty("group", groupId);
+        json.addProperty("playbackPosition",playbackPosition);
+        String jsonString = gson.toJson(json);
+        Log.d("APIConnector", "Hello");
+        textView.setText(jsonString);
+
+
+        try {
+            postData(context, setSongUrl, new JSONObject(jsonString));
+        }catch (Exception e){
+
+        }
+        return new JsonObject();
     }
 
     /**
      *Posts the JSON data to the server from the spotify side.
      * @param context The Current Activity that is posting the data
      */
-    public void postData(Context context){
-        try {
-            JSONObject json = new JSONObject(this.getJSON());
-            RequestQueue queue = Volley.newRequestQueue(context);
-            JsonObjectRequest request = new JsonObjectRequest(Request.Method.POST, url, json, new Response.Listener<JSONObject>() {
-                @Override
-                public void onResponse(JSONObject response) {
-                    Log.d("APIConnector", "Something went wrong");
-                }
-            },
-            new Response.ErrorListener() {
-                @Override
-                public void onErrorResponse(VolleyError error) {
-                    Log.d("APIConnector", "Something went wrong");
-                }
-            });
-            queue.add(request);
-
-        }
-        catch(JSONException e){
-            Log.d("APIConnector", "Could not parse JSON from string");
-        }
-
+    // TODO: Add in timer to see lag for media playback
+    public void postData(Context context, String url, JSONObject json){
+        RequestQueue queue = Volley.newRequestQueue(context);
+        Log.d("APIConnector", "Am here");
+        JsonObjectRequest request = new JsonObjectRequest(Request.Method.POST, url, json, new Response.Listener<JSONObject>() {
+            @Override
+            public void onResponse(JSONObject response) {
+                Log.d("APIConnector", "Something went wrong");
+            }
+        },
+        new Response.ErrorListener() {
+            @Override
+            public void onErrorResponse(VolleyError error) {
+                Log.d("APIConnector", "Something went wrong");
+            }
+        });
+        queue.add(request);
     }
 
 
