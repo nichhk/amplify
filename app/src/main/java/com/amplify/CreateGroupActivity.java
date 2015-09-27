@@ -1,5 +1,7 @@
 package com.amplify;
 
+
+import android.provider.Settings.Secure;
 import android.content.Context;
 import android.content.Intent;
 import android.support.v7.app.AppCompatActivity;
@@ -57,9 +59,9 @@ public class CreateGroupActivity extends AppCompatActivity {
         }
         String oAuth = builder.toString();
         Map<String, String> params = new HashMap<>();
-        params.put("oauth", oAuth);
+        params.put("android_id", Secure.getString(this.getContentResolver(), Secure.ANDROID_ID));
         params.put("name", groupName);
-        Log.d("CreateGroupActivity", "oauth " + oAuth);
+        //Log.d("CreateGroupActivity", "oauth " + oAuth);
         Log.d("CreateGroupActivity", "groupname " + groupName);
         sendGroupToService(params, "https://shrouded-tundra-5129.herokuapp.com/group/create/");
         Intent intent = new Intent(this, MainActivity.class);
@@ -75,11 +77,14 @@ public class CreateGroupActivity extends AppCompatActivity {
                     public void onResponse(JSONObject response) {
                         Log.d("CreateGroupActivity", "Successfully posted " + json.toString() + " to " + path);
                         try {
+                            //write the group id, and write true for isMaster
                             String groupId = response.getString("groupId");
                             FileOutputStream fos = openFileOutput("groupId", Context.MODE_PRIVATE);
                             fos.write(groupId.getBytes());
+                            fos = openFileOutput("isMaster", Context.MODE_PRIVATE);
+                            fos.write("true".getBytes());
                             fos.close();
-                            Log.d("CreateGroupActivity", "Created groupId in file");
+                            Log.d("CreateGroupActivity", "Created groupId in file and isMaster");
                         } catch (JSONException e) {
                             Log.e("CreateGroupActivity", "Could not parse response json");
                         } catch (IOException e) {
