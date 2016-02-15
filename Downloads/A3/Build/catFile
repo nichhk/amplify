@@ -1,0 +1,11 @@
+|supplier.acctbal.type|double|
+|supplier.address.type|string|
+|supplier.attList|suppkey#name#address#nationkey#phone#acctbal#comment#|
+|supplier.comment.type|string|
+|supplier.fileName|supplier.bin|
+|supplier.lastPage|343|
+|supplier.name.type|string|
+|supplier.nationkey.type|int|
+|supplier.phone.type|string|
+|supplier.suppkey.type|int|
+|tables|supplier#|
